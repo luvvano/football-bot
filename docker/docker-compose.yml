@@ -1,0 +1,40 @@
+# Local development docker-compose
+# Copy .env.example to .env and fill in your values
+services:
+  app:
+    container_name: football-bot-app
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    network_mode: host
+    environment:
+      - DATABASE_URL=postgres://football:football@localhost:5432/football?sslmode=disable
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_WEBAPP_URL=${TELEGRAM_WEBAPP_URL:-}
+      - API_PORT=8081
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    container_name: football-bot-db
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: football
+      POSTGRES_PASSWORD: football
+      POSTGRES_DB: football
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U football -d football"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
