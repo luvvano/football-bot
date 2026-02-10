@@ -43,6 +43,7 @@ func (h *BotHandler) RegisterHandlers() {
 	h.bot.Handle("/info", h.handleInfo)
 	h.bot.Handle("/events", h.handleEvents)
 	h.bot.Handle("/app", h.handleApp)
+	h.bot.Handle("/claim", h.handleClaim)
 
 	// Callback queries for venue selection
 	h.bot.Handle(&tele.InlineButton{Unique: "venue"}, h.handleVenueCallback)

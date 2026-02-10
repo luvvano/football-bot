@@ -16,6 +16,7 @@ var (
 	ErrAlreadyRegistered = errors.New("already registered for this event")
 	ErrEventFull         = errors.New("event is full")
 	ErrNotParticipant    = errors.New("not a participant of this event")
+	ErrInvalidToken      = errors.New("invalid or expired claim token")
 )
 
 type ParticipantService struct {
@@ -209,18 +210,22 @@ func (s *ParticipantService) GetByClaimToken(ctx context.Context, token string) 
 	return &p, nil
 }
 
-func (s *ParticipantService) ClaimGuest(ctx context.Context, token string, userID int64) error {
+func (s *ParticipantService) ClaimGuest(ctx context.Context, token string, userID int64) (*models.Participant, error) {
 	query := `
 		UPDATE participants
 		SET user_id = $1, guest_name = NULL, guest_claim_token = NULL
 		WHERE guest_claim_token = $2 AND status = 'confirmed'
+		RETURNING id, event_id, user_id, guest_name, guest_claim_token, added_by, status, registered_at
 	`
-	result, err := s.pool.Exec(ctx, query, userID, token)
+	var p models.Participant
+	err := s.pool.QueryRow(ctx, query, userID, token).Scan(
+		&p.ID, &p.EventID, &p.UserID, &p.GuestName, &p.GuestClaimToken, &p.AddedBy, &p.Status, &p.RegisteredAt,
+	)
 	if err != nil {
-		return err
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrInvalidToken
+		}
+		return nil, err
 	}
-	if result.RowsAffected() == 0 {
-		return errors.New("invalid or expired claim token")
-	}
-	return nil
+	return &p, nil
 }

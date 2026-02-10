@@ -119,8 +119,11 @@ func (h *BotHandler) addGuest(c tele.Context, ctx context.Context, event *models
 	_ = participant
 	msg := fmt.Sprintf(`✅ Гость "%s" записан!
 
-🔗 Токен для привязки: %s
-Гость может использовать этот токен для привязки аккаунта.`, guestName, claimToken[:8]+"...")
+🔗 Токен для привязки:
+%s
+
+📲 Чтобы привязать аккаунт, гость должен написать боту в личку:
+/claim %s`, guestName, claimToken, claimToken)
 
 	return h.showParticipantsList(c, ctx, event, msg)
 }
@@ -224,6 +227,50 @@ func (h *BotHandler) removeGuest(c tele.Context, ctx context.Context, event *mod
 	}
 
 	return h.showParticipantsList(c, ctx, event, fmt.Sprintf("✅ Гость \"%s\" удалён", guestName))
+}
+
+func (h *BotHandler) handleClaim(c tele.Context) error {
+	ctx := context.Background()
+	chat := c.Chat()
+	sender := c.Sender()
+
+	// Only works in private chat
+	if chat.Type != tele.ChatPrivate {
+		return c.Reply("⚠️ Эта команда работает только в личных сообщениях с ботом")
+	}
+
+	args := strings.TrimSpace(strings.TrimPrefix(c.Text(), "/claim"))
+	if args == "" {
+		return c.Reply("⚠️ Укажите токен: /claim <токен>")
+	}
+
+	// Get or create user
+	user, err := h.userService.Upsert(ctx, models.CreateUserInput{
+		TelegramID: sender.ID,
+		Username:   stringPtr(sender.Username),
+		FirstName:  stringPtr(sender.FirstName),
+		LastName:   stringPtr(sender.LastName),
+	})
+	if err != nil {
+		return c.Reply("❌ Ошибка регистрации")
+	}
+
+	// Claim the guest spot
+	participant, err := h.participantService.ClaimGuest(ctx, args, user.ID)
+	if err != nil {
+		if err == services.ErrInvalidToken {
+			return c.Reply("❌ Неверный или уже использованный токен")
+		}
+		return c.Reply("❌ Ошибка привязки")
+	}
+
+	// Get event info
+	event, _ := h.eventService.GetByID(ctx, participant.EventID)
+	if event != nil {
+		return c.Reply(fmt.Sprintf("✅ Аккаунт привязан!\n\n📅 Вы записаны на игру %s в %s", formatDate(event.EventDate), event.EventTime))
+	}
+
+	return c.Reply("✅ Аккаунт успешно привязан!")
 }
 
 func (h *BotHandler) showParticipantsList(c tele.Context, ctx context.Context, event *models.Event, header string) error {
