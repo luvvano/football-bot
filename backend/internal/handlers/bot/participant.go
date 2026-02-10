@@ -267,7 +267,7 @@ func (h *BotHandler) handleClaim(c tele.Context) error {
 	// Get event info
 	event, _ := h.eventService.GetByID(ctx, participant.EventID)
 	if event != nil {
-		return c.Reply(fmt.Sprintf("✅ Аккаунт привязан!\n\n📅 Вы записаны на игру %s в %s", formatDate(event.EventDate), event.EventTime))
+		return c.Reply(fmt.Sprintf("✅ Аккаунт привязан!\n\n📅 Вы записаны на игру %s в %s", formatDate(event.EventDate), formatTime(event.EventTime)))
 	}
 
 	return c.Reply("✅ Аккаунт успешно привязан!")
@@ -277,7 +277,7 @@ func (h *BotHandler) showParticipantsList(c tele.Context, ctx context.Context, e
 	participants, _ := h.participantService.GetByEvent(ctx, event.ID)
 	
 	msg := header + "\n\n"
-	msg += fmt.Sprintf("📅 %s в %s\n", formatDate(event.EventDate), event.EventTime)
+	msg += fmt.Sprintf("📅 %s в %s\n", formatDate(event.EventDate), formatTime(event.EventTime))
 	msg += fmt.Sprintf("👥 Участники (%d/%d):\n", len(participants), event.MaxParticipants())
 
 	for i, p := range participants {

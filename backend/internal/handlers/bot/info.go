@@ -47,7 +47,7 @@ func (h *BotHandler) handleInfo(c tele.Context) error {
 📅 Дата: %s
 🕐 Время: %s
 👥 Размер команды: %d (+%d замены)
-`, formatDate(event.EventDate), event.EventTime, event.TeamSize, event.MaxSubsPerTeam)
+`, formatDate(event.EventDate), formatTime(event.EventTime), event.TeamSize, event.MaxSubsPerTeam)
 
 	if venueName != "" {
 		msg += fmt.Sprintf("🏟 Площадка: %s\n", venueName)
@@ -108,7 +108,7 @@ func (h *BotHandler) handleEvents(c tele.Context) error {
 		msg += fmt.Sprintf("%s %s в %s — %d/%d игроков\n",
 			statusEmoji,
 			formatDate(e.EventDate),
-			e.EventTime,
+			formatTime(e.EventTime),
 			count,
 			e.MaxParticipants())
 	}

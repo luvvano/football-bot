@@ -36,6 +36,7 @@ func NewBotHandler(
 }
 
 func (h *BotHandler) RegisterHandlers() {
+	// Basic commands
 	h.bot.Handle("/start", h.handleStart)
 	h.bot.Handle("/event", h.handleEvent)
 	h.bot.Handle("/add", h.handleAdd)
@@ -44,6 +45,12 @@ func (h *BotHandler) RegisterHandlers() {
 	h.bot.Handle("/events", h.handleEvents)
 	h.bot.Handle("/app", h.handleApp)
 	h.bot.Handle("/claim", h.handleClaim)
+
+	// Admin commands
+	h.bot.Handle("/venue", h.handleVenue)
+	h.bot.Handle("/cancel", h.handleCancel)
+	h.bot.Handle("/finish", h.handleFinish)
+	h.bot.Handle("/notheld", h.handleNotHeld)
 
 	// Callback queries for venue selection
 	h.bot.Handle(&tele.InlineButton{Unique: "venue"}, h.handleVenueCallback)

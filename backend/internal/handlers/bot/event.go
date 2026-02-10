@@ -140,7 +140,7 @@ func (h *BotHandler) handleVenueCallback(c tele.Context) error {
 
 Используйте /add для записи`, 
 		formatDate(event.EventDate), 
-		event.EventTime,
+		formatTime(event.EventTime),
 		venue.Name)
 
 	c.Respond(&tele.CallbackResponse{Text: "✅ Площадка выбрана"})
@@ -161,7 +161,7 @@ func (h *BotHandler) handleSkipVenueCallback(c tele.Context) error {
 Площадка будет объявлена позже.
 Используйте /add для записи`, 
 		formatDate(event.EventDate), 
-		event.EventTime)
+		formatTime(event.EventTime))
 
 	c.Respond(&tele.CallbackResponse{Text: "⏩ Площадка пропущена"})
 	return c.Edit(msg)
@@ -210,4 +210,13 @@ func isValidTime(s string) bool {
 func formatDate(t time.Time) string {
 	weekdays := []string{"Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"}
 	return fmt.Sprintf("%s, %02d.%02d", weekdays[t.Weekday()], t.Day(), t.Month())
+}
+
+func formatTime(t string) string {
+	// PostgreSQL TIME returns "HH:MM:SS" or "HH:MM:SS.microseconds"
+	// We only need "HH:MM"
+	if len(t) >= 5 {
+		return t[:5]
+	}
+	return t
 }
