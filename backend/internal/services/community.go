@@ -152,3 +152,34 @@ func (s *CommunityService) GetMembers(ctx context.Context, communityID int) ([]m
 
 	return members, rows.Err()
 }
+
+func (s *CommunityService) GetUserCommunities(ctx context.Context, userID int64) ([]models.CommunityWithRole, error) {
+	query := `
+		SELECT c.id, c.telegram_chat_id, c.name, c.created_by, c.settings, c.created_at, cm.role
+		FROM communities c
+		JOIN community_members cm ON c.id = cm.community_id
+		WHERE cm.user_id = $1
+		ORDER BY c.name
+	`
+
+	rows, err := s.pool.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var communities []models.CommunityWithRole
+	for rows.Next() {
+		var c models.CommunityWithRole
+		var settingsJSON []byte
+		if err := rows.Scan(&c.ID, &c.TelegramChatID, &c.Name, &c.CreatedBy, &settingsJSON, &c.CreatedAt, &c.Role); err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal(settingsJSON, &c.Settings); err != nil {
+			c.Settings = models.DefaultCommunitySettings()
+		}
+		communities = append(communities, c)
+	}
+
+	return communities, rows.Err()
+}

@@ -76,12 +76,14 @@ func (h *BotHandler) handleInfo(c tele.Context) error {
 func (h *BotHandler) handleEvents(c tele.Context) error {
 	ctx := context.Background()
 	chat := c.Chat()
+	sender := c.Sender()
 
+	// Private chat - show events from all user's communities
 	if chat.Type == tele.ChatPrivate {
-		return c.Reply("⚠️ Эта команда работает только в группах")
+		return h.handlePrivateEvents(c, ctx, sender.ID)
 	}
 
-	// Get community
+	// Group chat - existing logic
 	community, err := h.communityService.GetByTelegramChatID(ctx, chat.ID)
 	if err != nil {
 		return c.Reply("❌ Сообщество не зарегистрировано. Используйте /start")
@@ -114,6 +116,55 @@ func (h *BotHandler) handleEvents(c tele.Context) error {
 	}
 
 	msg += "\nИспользуйте /info для подробностей о ближайшей игре"
+
+	return c.Reply(msg)
+}
+
+func (h *BotHandler) handlePrivateEvents(c tele.Context, ctx context.Context, telegramID int64) error {
+	user, err := h.userService.GetByTelegramID(ctx, telegramID)
+	if err != nil {
+		return c.Reply("❌ Вы не зарегистрированы. Используйте /start в группе с ботом")
+	}
+
+	communities, err := h.communityService.GetUserCommunities(ctx, user.ID)
+	if err != nil || len(communities) == 0 {
+		return c.Reply("ℹ️ Вы не состоите ни в одном сообществе")
+	}
+
+	msg := "📅 Ваши предстоящие игры:\n"
+	hasEvents := false
+
+	for _, comm := range communities {
+		events, err := h.eventService.GetByCommunity(ctx, comm.ID, false)
+		if err != nil || len(events) == 0 {
+			continue
+		}
+
+		hasEvents = true
+		msg += fmt.Sprintf("\n⚽ %s:\n", comm.Name)
+
+		for _, e := range events {
+			count, _ := h.participantService.CountConfirmed(ctx, e.ID)
+			
+			statusEmoji := "🟢"
+			if count >= e.MaxParticipants() {
+				statusEmoji = "🔴"
+			} else if count >= e.MaxParticipants()/2 {
+				statusEmoji = "🟡"
+			}
+
+			msg += fmt.Sprintf("  %s %s в %s — %d/%d\n",
+				statusEmoji,
+				formatDate(e.EventDate),
+				formatTime(e.EventTime),
+				count,
+				e.MaxParticipants())
+		}
+	}
+
+	if !hasEvents {
+		return c.Reply("ℹ️ Нет предстоящих игр в ваших сообществах")
+	}
 
 	return c.Reply(msg)
 }

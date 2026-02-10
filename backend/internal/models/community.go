@@ -41,3 +41,13 @@ type CommunityMember struct {
 	Role        string    `json:"role"` // admin, player
 	JoinedAt    time.Time `json:"joined_at"`
 }
+
+type CommunityWithRole struct {
+	ID             int               `json:"id"`
+	TelegramChatID int64             `json:"telegram_chat_id"`
+	Name           string            `json:"name"`
+	CreatedBy      *int64            `json:"created_by,omitempty"`
+	Settings       CommunitySettings `json:"settings"`
+	CreatedAt      time.Time         `json:"created_at"`
+	Role           string            `json:"role"` // user's role in this community
+}
